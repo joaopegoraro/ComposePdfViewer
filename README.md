@@ -1,4 +1,5 @@
 # ComposePdfViewer
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 A simple Jetpack Compose PDF viewer
 
@@ -63,9 +64,3 @@ PdfViewer(
 
 - Add ram chaching for the pdf pages in case the PDF is not as heavy and doesn't need disk caching
 - Publish to [Jitpack](https://jitpack.io/)
-
-
-License
---------
-
-TODO
