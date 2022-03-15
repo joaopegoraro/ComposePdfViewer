@@ -2,18 +2,17 @@ package xyz.joaophp.pdfviewer
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import androidx.annotation.RawRes
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.*
 import androidx.compose.material.Card
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -38,6 +37,11 @@ fun PdfViewer(
     pageColor: Color = Color.White,
     listDirection: PdfListDirection = PdfListDirection.VERTICAL,
     arrangement: Arrangement.HorizontalOrVertical = Arrangement.spacedBy(16.dp),
+    loadingListener: (
+        isLoading: Boolean,
+        currentPage: Int?,
+        maxPage: Int?,
+    ) -> Unit = { _, _, _ -> }
 ) {
     val context = LocalContext.current
     PdfViewer(
@@ -46,7 +50,8 @@ fun PdfViewer(
         pageColor = pageColor,
         backgroundColor = backgroundColor,
         listDirection = listDirection,
-        arrangement = arrangement
+        arrangement = arrangement,
+        loadingListener = loadingListener,
     )
 }
 
@@ -59,12 +64,18 @@ fun PdfViewer(
     pageColor: Color = Color.White,
     listDirection: PdfListDirection = PdfListDirection.VERTICAL,
     arrangement: Arrangement.HorizontalOrVertical = Arrangement.spacedBy(16.dp),
+    loadingListener: (
+        isLoading: Boolean,
+        currentPage: Int?,
+        maxPage: Int?,
+    ) -> Unit = { _, _, _ -> }
 ) {
     PdfViewer(
         pdfStream = pdfStream,
         modifier = modifier,
         backgroundColor = backgroundColor,
         listDirection = listDirection,
+        loadingListener = loadingListener,
         arrangement = arrangement
     ) { lazyState, imagem ->
         PaginaPDF(
@@ -83,6 +94,11 @@ fun PdfViewer(
     backgroundColor: Color = Color(0xFF909090),
     listDirection: PdfListDirection = PdfListDirection.VERTICAL,
     arrangement: Arrangement.HorizontalOrVertical = Arrangement.spacedBy(16.dp),
+    loadingListener: (
+        isLoading: Boolean,
+        currentPage: Int?,
+        maxPage: Int?,
+    ) -> Unit = { _, _, _ -> },
     page: @Composable (LazyListState, ImageBitmap) -> Unit
 ) {
     val context = LocalContext.current
@@ -92,6 +108,7 @@ fun PdfViewer(
         backgroundColor = backgroundColor,
         listDirection = listDirection,
         arrangement = arrangement,
+        loadingListener = loadingListener,
         page = page
     )
 }
@@ -104,15 +121,22 @@ fun PdfViewer(
     backgroundColor: Color = Color(0xFF909090),
     listDirection: PdfListDirection = PdfListDirection.VERTICAL,
     arrangement: Arrangement.HorizontalOrVertical = Arrangement.spacedBy(16.dp),
+    loadingListener: (
+        isLoading: Boolean,
+        currentPage: Int?,
+        maxPage: Int?,
+    ) -> Unit = { _, _, _ -> },
     page: @Composable (LazyListState, ImageBitmap) -> Unit
 ) {
     val context = LocalContext.current
-    val pageList = remember {
-        mutableStateListOf<ImageBitmap?>()
+    val pagePaths = remember {
+        mutableStateListOf<String>()
     }
     LaunchedEffect(true) {
-        pageList.clear()
-        pageList.addAll(context.loadPdf(pdfStream))
+        if (pagePaths.isEmpty()) {
+            val paths = context.loadPdf(pdfStream, loadingListener)
+            pagePaths.addAll(paths)
+        }
     }
     val lazyState = rememberLazyListState()
     when (listDirection) {
@@ -122,8 +146,14 @@ fun PdfViewer(
                 state = lazyState,
                 horizontalArrangement = arrangement
             ) {
-                items(pageList) { imagem ->
-                    if (imagem != null) page(lazyState, imagem)
+                items(pagePaths) { path ->
+                    var imageBitmap by remember {
+                        mutableStateOf<ImageBitmap?>(null)
+                    }
+                    LaunchedEffect(path) {
+                        imageBitmap = BitmapFactory.decodeFile(path).asImageBitmap()
+                    }
+                    imageBitmap?.let { page(lazyState, it) }
                 }
             }
         PdfListDirection.VERTICAL ->
@@ -132,8 +162,14 @@ fun PdfViewer(
                 state = lazyState,
                 verticalArrangement = arrangement
             ) {
-                items(pageList) { imagem ->
-                    if (imagem != null) page(lazyState, imagem)
+                items(pagePaths) { path ->
+                    var imageBitmap by remember {
+                        mutableStateOf<ImageBitmap?>(null)
+                    }
+                    LaunchedEffect(path) {
+                        imageBitmap = BitmapFactory.decodeFile(path).asImageBitmap()
+                    }
+                    imageBitmap?.let { page(lazyState, it) }
                 }
             }
     }
@@ -154,27 +190,36 @@ private fun PaginaPDF(
     }
 }
 
-suspend fun Context.loadPdf(inputStream: InputStream): List<ImageBitmap?> {
+suspend fun Context.loadPdf(
+    inputStream: InputStream,
+    loadingListener: (
+        isLoading: Boolean,
+        currentPage: Int?,
+        maxPage: Int?
+    ) -> Unit = { _, _, _ -> }
+): List<String> = withContext(Dispatchers.Default) {
+    loadingListener(true, null, null)
     val outputDir = cacheDir
-    val tempFile = withContext(Dispatchers.IO) {
-        File.createTempFile("temp", "pdf", outputDir)
-    }
+    val tempFile = File.createTempFile("temp", "pdf", outputDir)
     tempFile.mkdirs()
     tempFile.deleteOnExit()
-    val outputStream = withContext(Dispatchers.IO) {
-        FileOutputStream(tempFile)
-    }
+    val outputStream = FileOutputStream(tempFile)
     copy(inputStream, outputStream)
     val input = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
     val renderer = PdfRenderer(input)
-
-    return (0 until renderer.pageCount).map {
-        val page = renderer.openPage(it)
+    (0 until renderer.pageCount).map { pageNumber ->
+        loadingListener(true, pageNumber, renderer.pageCount)
+        val file = File.createTempFile("PDFpage$pageNumber", "png", outputDir)
+        file.mkdirs()
+        val page = renderer.openPage(pageNumber)
         val bitmap = Bitmap.createBitmap(1240, 1754, Bitmap.Config.ARGB_8888)
         page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
         page.close()
-        bitmap.asImageBitmap()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, FileOutputStream(file))
+        Log.i("PDF_VIEWER", "Loaded page $pageNumber")
+        file.absolutePath
     }.also {
+        loadingListener(false, null, renderer.pageCount)
         renderer.close()
     }
 }
