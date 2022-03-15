@@ -56,11 +56,11 @@ PdfViewer(
 
 # Known problems
 
-- Zoom pan is not restricted (Any fix to that should go to [ComposeZoomableImagePlus](https://github.com/joaopegoraro/ComposeZoomableImagePlus)
+- Zoom pan is not restricted (Any fix to that should go to [ComposeZoomableImagePlus](https://github.com/joaopegoraro/ComposeZoomableImagePlus))
 - Load performance is slow (on average, the PDF Viewer loads about 4 pages a second on a Pixel 2 emulator)
 
 
 # Future changes (other than fixing the known problems)
 
-- Add ram chaching for the pdf pages in case the PDF is not as heavy and doesn't need disk caching
+- Add ram caching for the pdf pages in case the PDF is not as heavy and doesn't need disk caching
 - Publish to [Jitpack](https://jitpack.io/)
