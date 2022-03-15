@@ -211,13 +211,14 @@ suspend fun Context.loadPdf(
         loadingListener(true, pageNumber, renderer.pageCount)
         val file = File.createTempFile("PDFpage$pageNumber", "png", outputDir)
         file.mkdirs()
+        file.deleteOnExit()
         val page = renderer.openPage(pageNumber)
         val bitmap = Bitmap.createBitmap(1240, 1754, Bitmap.Config.ARGB_8888)
         page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
         page.close()
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, FileOutputStream(file))
         Log.i("PDF_VIEWER", "Loaded page $pageNumber")
-        file.absolutePath
+        file.absolutePath.also { Log.d("TESTE", it) }
     }.also {
         loadingListener(false, null, renderer.pageCount)
         renderer.close()

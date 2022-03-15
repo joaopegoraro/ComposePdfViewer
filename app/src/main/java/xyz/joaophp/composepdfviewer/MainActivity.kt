@@ -47,7 +47,6 @@ fun DemoLayout() {
         PdfViewer(
             modifier = Modifier.fillMaxSize(),
             pdfResId = R.raw.demo,
-            listDirection = PdfListDirection.HORIZONTAL,
             loadingListener = { loading, currentPage, maxPage ->
                 isLoading = loading
                 if (currentPage != null) currentLoadingPage = currentPage
