@@ -5,16 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.LinearProgressIndicator
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import xyz.joaophp.composepdfviewer.ui.theme.ComposePdfViewerTheme
-import xyz.joaophp.pdfviewer.PdfListDirection
 import xyz.joaophp.pdfviewer.PdfViewer
 
 @ExperimentalFoundationApi
@@ -47,6 +45,13 @@ fun DemoLayout() {
         PdfViewer(
             modifier = Modifier.fillMaxSize(),
             pdfResId = R.raw.demo,
+//            pdfResId = R.raw.corrupted_pdf_file, //try this to test the fallback Widget
+            fallbackWidget = {
+                Icon(
+                    Icons.Rounded.Info,
+                    contentDescription = "Error Component"
+                )
+            },
             loadingListener = { loading, currentPage, maxPage ->
                 isLoading = loading
                 if (currentPage != null) currentLoadingPage = currentPage

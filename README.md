@@ -19,6 +19,12 @@ PdfViewer(
     pageColor = Color.White,
     listDirection = PdfListDirection.VERTICAL,
     arrangement = Arrangement.spacedBy(16.dp),
+    fallbackWidget = {
+        Icon(
+            Icons.Rounded.Info,
+            contentDescription = "Error Component"
+        )
+    },
     loadingListener = { isLoading, currentPage, maxPage ->
          // Observe loading changes
     }
@@ -32,6 +38,9 @@ PdfViewer(
     pageColor = Color.White,
     listDirection = PdfListDirection.VERTICAL,
     arrangement = Arrangement.spacedBy(16.dp),
+    fallbackWidget = {
+        // Display Custom Widget if an error occurred while rendering the pdf file
+    },
     loadingListener = { isLoading, currentPage, maxPage ->
          // Observe loading changes
     }
@@ -44,6 +53,9 @@ PdfViewer(
    backgroundColor = Color(0xFF909090),
    listDirection = PdfListDirection.VERTICAL,
    arrangement = Arrangement.spacedBy(16.dp),
+    fallbackWidget = {
+        // Display Custom Widget if an error occurred while rendering the pdf file
+    },
    loadingListener = { isLoading, currentPage, maxPage ->
         // Observe loading changes
    },
